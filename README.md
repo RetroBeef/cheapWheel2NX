@@ -1,8 +1,7 @@
 # cheapWheel2NX
 RP2040 Prototype for making a cheap steering wheel work with racing games on a switch  
 
-This is essentially a mashup of the host_hid_to_device_cdc example from Pico-PIO-USB and the tinyusb HID example  
-to make a cheap old steering wheel work with some racing games on a switch  
+This is essentially a mashup of the host_hid_to_device_cdc example from Pico-PIO-USB and the tinyusb HID example to make a cheap old steering wheel work with some racing games on a switch  
 
 # Cloning & Building
 ```
