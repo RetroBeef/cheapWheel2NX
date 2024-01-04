@@ -1,5 +1,5 @@
 #pragma once
-const uint8_t pedalThreshold = 10;
+const uint8_t pedalThreshold = 20;
 const float xSensitivity = 2.0f;
 
 const uint8_t wheelModeOff = 0xc0;

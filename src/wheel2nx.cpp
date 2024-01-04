@@ -40,16 +40,16 @@ void translateToNx(){
     lastSwitchReport.obj.plus = lastWheelReport.button10;
 
     lastSwitchReport.obj.lx = getAdjustedAxisValue(lastWheelReport.xAxisTrimmed, lastWheelReport.centerX, xSensitivity);
-
-    if(lastWheelReport.yAxis>lastWheelReport.centerY+pedalThreshold){
+    if(!lastWheelReport.button03 && lastWheelReport.yAxis>lastWheelReport.centerY+pedalThreshold){
         lastSwitchReport.obj.b = 1;//mk break
-    }else if(lastWheelReport.yAxis < lastWheelReport.centerY-pedalThreshold){
+    }
+    if(!lastWheelReport.button04 && lastWheelReport.yAxis < lastWheelReport.centerY-pedalThreshold){
         lastSwitchReport.obj.a = 1;//mk gas
     }
 
-    lastSwitchReport.obj.ly = 126;//center?
-    lastSwitchReport.obj.rx = 126;//center?
-    lastSwitchReport.obj.ry = 126;//center?
+    lastSwitchReport.obj.ly = 127;//center?
+    lastSwitchReport.obj.rx = 127;//center?
+    lastSwitchReport.obj.ry = 127;//center?
 }
 
 void hid_task(void){
