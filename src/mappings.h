@@ -1,19 +1,19 @@
 #pragma once
-const uint8_t pedalThreshold = 20;
-const float xSensitivity = 2.0f;
+const uint8_t tracerPedalThreshold = 20;
+const float tracerXSensitivity = 2.0f;
 
-const uint8_t wheelModeOff = 0xc0;
-const uint8_t wheelModeOn = 0x40;
+const uint8_t speedforcePedalThreshold = 20;
+const float speeedforceXSensitivity = 1.0f;
 
-const uint8_t dpadIdle =      0x1f;
-const uint8_t dpadUp =        0x00;
-const uint8_t dpadUpRight =   0x01;
-const uint8_t dpadRight =     0x02;
-const uint8_t dpadDownRight = 0x03;
-const uint8_t dpadDown =      0x04;
-const uint8_t dpadDownLeft =  0x05;
-const uint8_t dpadLeft =      0x06;
-const uint8_t dpadUpLeft =    0x07;
+#define HATSWITCH_UP            0x00
+#define HATSWITCH_UPRIGHT       0x01
+#define HATSWITCH_RIGHT         0x02
+#define HATSWITCH_DOWNRIGHT     0x03
+#define HATSWITCH_DOWN          0x04
+#define HATSWITCH_DOWNLEFT      0x05
+#define HATSWITCH_LEFT          0x06
+#define HATSWITCH_UPLEFT        0x07
+#define HATSWITCH_NONE          0x0F
 
 #pragma pack(push,1)
 typedef struct{
@@ -36,15 +36,27 @@ typedef struct{
   uint8_t paddleLeft : 1;
   uint8_t paddleRight : 1;
   uint8_t mode;
-} hid_wheel_report_t;
+} tracer_wheel_report_t;
 
 typedef struct{
-  uint8_t up: 1;
-  uint8_t down: 1;
-  uint8_t left: 1;
-  uint8_t right: 1;
-  uint8_t padding: 4;
-} dpad_t;
+  uint16_t xAxis : 10;
+  uint8_t reserved01 : 1;
+  uint8_t reserved02 : 1;
+  uint8_t dpadLeft : 1;
+  uint8_t dpadRight : 1;
+  uint8_t dpadDown : 1;
+  uint8_t dpadUp : 1;
+  uint8_t buttonPlus : 1;
+  uint8_t buttonTwo : 1;
+  uint8_t buttonOne : 1;
+  uint8_t buttonB : 1;
+  uint8_t buttonA : 1;
+  uint8_t buttonMinus : 1;
+  uint8_t buttonHome : 1;
+  uint8_t reserved03 : 1;
+  uint8_t paddleRight;
+  uint8_t paddleLeft;
+} speedforce_wheel_report_t;
 
 typedef struct{
 	uint8_t y : 1;
