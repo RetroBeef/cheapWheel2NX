@@ -80,7 +80,7 @@
 //--------------------------------------------------------------------
 
 // Size of buffer to hold descriptors and other data used for enumeration
-#define CFG_TUH_ENUMERATION_BUFSIZE 256
+#define CFG_TUH_ENUMERATION_BUFSIZE 384
 
 #define CFG_TUH_HUB                 1
 // max device support (excluding hub device)
@@ -89,6 +89,8 @@
 #define CFG_TUH_HID                  4
 #define CFG_TUH_HID_EPIN_BUFSIZE    64
 #define CFG_TUH_HID_EPOUT_BUFSIZE   64
+
+#define CFG_TUH_XINPUT 1
 
 #ifdef __cplusplus
  }

@@ -8,6 +8,7 @@
 
 #include "pio_usb.h"
 #include "tusb.h"
+#include "xinput_host.h"
 
 #include "mappings.h"
 
@@ -35,8 +36,15 @@ supported_device_t* supportedDevices[supportedDevicesCount] = {&tracer, &speedFo
 tracer_wheel_report_t lastTracerReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 speedforce_wheel_report_t lastSpeedforceReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 switch_report_t lastSwitchReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+xinput_gamepad_t lastXinputReport = {0,0,0,0,0,0,0};
 
 connected_device_t* connectedDevice = 0;
+uint8_t xinputConnected = 0;
+
+usbh_class_driver_t const* usbh_app_driver_get_cb(uint8_t* driver_count){
+    *driver_count = 1;
+    return &usbh_xinput_driver;
+}
 
 int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -94,6 +102,16 @@ void translateTracerToNx(){
     lastSwitchReport.obj.ry = 127;//center?
 }
 
+static uint8_t replay[6][7]{
+    {0xF5, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    {0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    {0x11, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00},
+    {0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    {0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    {0x83, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+};
+
+static uint8_t testForceFeedBack = 0;
 void translateSpeedforceToNx(){
 	uint8_t up = lastSpeedforceReport.dpadUp;
 	uint8_t down = lastSpeedforceReport.dpadDown;
@@ -142,6 +160,47 @@ void translateSpeedforceToNx(){
     lastSwitchReport.obj.ly = 127;//center?
     lastSwitchReport.obj.rx = 127;//center?
     lastSwitchReport.obj.ry = 127;//center?
+
+    if(lastSpeedforceReport.buttonHome){
+        testForceFeedBack = 1;
+    }
+}
+
+void translateXinputToNx(){
+	uint8_t up = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+	uint8_t down = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+    uint8_t left = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+    uint8_t right = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+    lastSwitchReport.obj.hat = HATSWITCH_NONE;
+    if(up){
+    	if(right) lastSwitchReport.obj.hat = HATSWITCH_UPRIGHT;
+    	else if(left) lastSwitchReport.obj.hat = HATSWITCH_UPLEFT;
+    	else lastSwitchReport.obj.hat = HATSWITCH_UP;
+    }else if(down){
+    	if(right) lastSwitchReport.obj.hat = HATSWITCH_DOWNRIGHT;
+    	else if(left) lastSwitchReport.obj.hat = HATSWITCH_DOWNLEFT;
+    	else lastSwitchReport.obj.hat = HATSWITCH_DOWN;
+    }else if(left){
+    	lastSwitchReport.obj.hat = HATSWITCH_LEFT;
+    }else if(right){
+    	lastSwitchReport.obj.hat = HATSWITCH_RIGHT;
+    }
+	
+    lastSwitchReport.obj.y = lastXinputReport.wButtons & XINPUT_GAMEPAD_Y;
+    lastSwitchReport.obj.b = lastXinputReport.wButtons & XINPUT_GAMEPAD_B;
+    lastSwitchReport.obj.a = lastXinputReport.wButtons & XINPUT_GAMEPAD_A;
+    lastSwitchReport.obj.x = lastXinputReport.wButtons & XINPUT_GAMEPAD_X;
+
+    lastSwitchReport.obj.l = lastXinputReport.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+    lastSwitchReport.obj.r = lastXinputReport.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+
+    lastSwitchReport.obj.home = lastXinputReport.wButtons & XINPUT_GAMEPAD_GUIDE;
+    lastSwitchReport.obj.plus = lastXinputReport.wButtons & XINPUT_GAMEPAD_START;
+
+    lastSwitchReport.obj.lx = map(lastXinputReport.sThumbLX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
+    lastSwitchReport.obj.ly = map(lastXinputReport.sThumbLY, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
+    lastSwitchReport.obj.rx = map(lastXinputReport.sThumbRX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
+    lastSwitchReport.obj.ry = map(lastXinputReport.sThumbRX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
 }
 
 void hid_task(void){
@@ -157,6 +216,8 @@ void hid_task(void){
         }else if(connectedDevice->devId.vid == speedForce.vid && connectedDevice->devId.pid == speedForce.pid){
             translateSpeedforceToNx();
         }
+    }else if(xinputConnected){
+        translateXinputToNx();
     }
 
     if (tud_suspended()){
@@ -168,6 +229,8 @@ void hid_task(void){
     }
 }
 
+static uint8_t set_report_is_ready = 1;
+
 void core1_main() {
   sleep_ms(10);
 
@@ -178,6 +241,10 @@ void core1_main() {
 
   uint64_t lastCheckMs = 0;
   uint64_t secondCheckMs = 0;
+
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
   while (true) {
     tuh_task();
@@ -195,8 +262,19 @@ void core1_main() {
                         pairReport[2] = 0x0b;
                         tuh_hid_set_report(connectedDevice->devAddress, connectedDevice->devInstance, 0, HID_REPORT_TYPE_FEATURE, pairReport, sizeof(pairReport));
                         connectedDevice->activated = 1;
-                        secondCheckMs = 0;
+                        //secondCheckMs = 0;
                         lastCheckMs = 0;
+                    }
+                }
+            }else if(testForceFeedBack && connectedDevice->devReady>=9 && connectedDevice->activated){
+                static uint8_t i=0;
+                if(set_report_is_ready){
+                    set_report_is_ready = 0;
+                    tuh_hid_set_report(connectedDevice->devAddress, connectedDevice->devInstance, 0, HID_REPORT_TYPE_OUTPUT, replay[i], 7);
+                    i++;
+                    if(i>=6){
+                        i=0;
+                        testForceFeedBack = 0;
                     }
                 }
             }
@@ -252,22 +330,29 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
             //todo
           }
         }
+        gpio_put(PICO_DEFAULT_LED_PIN, 1);
         break;
     }
   }
 }
 
+void tuh_xinput_mount_cb(uint8_t dev_addr, uint8_t instance, const xinputh_interface_t *xinput_itf){
+    // If this is a Xbox 360 Wireless controller we need to wait for a connection packet
+    // on the in pipe before setting LEDs etc. So just start getting data until a controller is connected.
+    if (xinput_itf->type == XBOX360_WIRELESS && xinput_itf->connected == false)
+    {
+        tuh_xinput_receive_report(dev_addr, instance);
+        return;
+    }
+    tuh_xinput_set_led(dev_addr, instance, 0, true);
+    tuh_xinput_set_led(dev_addr, instance, 1, true);
+    tuh_xinput_set_rumble(dev_addr, instance, 0, 0, true);
+    xinputConnected = 1;
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
+    tuh_xinput_receive_report(dev_addr, instance);
+}
+
 void tud_mount_cb(void){
-}
-
-void tud_umount_cb(void){
-}
-
-void tud_suspend_cb(bool remote_wakeup_en){
-    (void)remote_wakeup_en;
-}
-
-void tud_resume_cb(void){
 }
 
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen){
@@ -284,7 +369,9 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
     (void)instance;
     (void)report_id;
     (void)report_type;
-    tud_hid_report(0, buffer, bufsize);
+    (void)buffer;
+    (void) bufsize;
+    //tud_hid_report(0, buffer, bufsize);
 }
 
 static void process_tracer_report(uint8_t dev_addr, tracer_wheel_report_t const * report){
@@ -296,6 +383,12 @@ static void process_speedforce_report(uint8_t dev_addr, speedforce_wheel_report_
     (void)dev_addr;
     memcpy(&lastSpeedforceReport, report, sizeof(speedforce_wheel_report_t));
 }
+
+static void process_xinput_report(uint8_t dev_addr, xinput_gamepad_t const * report){
+    (void)dev_addr;
+    memcpy(&lastXinputReport, report, sizeof(xinput_gamepad_t));
+}
+
 
 void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len){
   (void)len;
@@ -326,11 +419,51 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
   }
 }
 
+void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *report, uint16_t len){
+    xinputh_interface_t *xid_itf = (xinputh_interface_t *)report;
+    xinput_gamepad_t *p = &xid_itf->pad;
+    if (xid_itf->connected && xid_itf->new_pad_data){
+        process_xinput_report(dev_addr, p);
+    }
+    tuh_xinput_receive_report(dev_addr, instance);
+}
+
 void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance){
     (void)dev_addr;
     (void)instance;
     if(connectedDevice){
         free(connectedDevice);
         connectedDevice = 0;
+        gpio_put(PICO_DEFAULT_LED_PIN, 0);
+    }
+}
+
+void tuh_xinput_umount_cb(uint8_t dev_addr, uint8_t instance)
+{
+    //TU_LOG1("XINPUT UNMOUNTED %02x %d\n", dev_addr, instance);
+    xinputConnected = 0;
+    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+}
+
+void tud_umount_cb(void){
+}
+
+void tud_suspend_cb(bool remote_wakeup_en){
+    (void)remote_wakeup_en;
+}
+
+void tud_resume_cb(void){
+}
+
+void tuh_hid_report_sent_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len){
+
+}
+
+void tuh_hid_set_report_complete_cb(uint8_t dev_addr, uint8_t instance, uint8_t report_id, uint8_t report_type, uint16_t len){
+    if(report_type == HID_REPORT_TYPE_OUTPUT){
+        //if(len!=0){
+            //gpio_put(PICO_DEFAULT_LED_PIN, 1);
+            set_report_is_ready = 1;
+        //}
     }
 }

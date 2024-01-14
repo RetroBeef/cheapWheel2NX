@@ -4,6 +4,7 @@ add_executable(${target_name})
 target_sources(${target_name} PRIVATE
  wheel2nx.cpp
  usb_descriptors.c
+ xinput_host.c
  # can use 'tinyusb_pico_pio_usb' library later when pico-sdk is updated
  ${PICO_TINYUSB_PATH}/src/portable/raspberrypi/pio_usb/dcd_pio_usb.c
  ${PICO_TINYUSB_PATH}/src/portable/raspberrypi/pio_usb/hcd_pio_usb.c
