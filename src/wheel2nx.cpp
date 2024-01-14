@@ -186,21 +186,21 @@ void translateXinputToNx(){
     	lastSwitchReport.obj.hat = HATSWITCH_RIGHT;
     }
 	
-    lastSwitchReport.obj.y = lastXinputReport.wButtons & XINPUT_GAMEPAD_Y;
-    lastSwitchReport.obj.b = lastXinputReport.wButtons & XINPUT_GAMEPAD_B;
-    lastSwitchReport.obj.a = lastXinputReport.wButtons & XINPUT_GAMEPAD_A;
-    lastSwitchReport.obj.x = lastXinputReport.wButtons & XINPUT_GAMEPAD_X;
+    lastSwitchReport.obj.y = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_Y);
+    lastSwitchReport.obj.b = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_B);
+    lastSwitchReport.obj.a = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_A);
+    lastSwitchReport.obj.x = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_X);
 
-    lastSwitchReport.obj.l = lastXinputReport.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-    lastSwitchReport.obj.r = lastXinputReport.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+    lastSwitchReport.obj.l = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+    lastSwitchReport.obj.r = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
 
-    lastSwitchReport.obj.home = lastXinputReport.wButtons & XINPUT_GAMEPAD_GUIDE;
-    lastSwitchReport.obj.plus = lastXinputReport.wButtons & XINPUT_GAMEPAD_START;
+    lastSwitchReport.obj.home = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_GUIDE);
+    lastSwitchReport.obj.plus = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_START);
 
     lastSwitchReport.obj.lx = map(lastXinputReport.sThumbLX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
-    lastSwitchReport.obj.ly = map(lastXinputReport.sThumbLY, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
+    lastSwitchReport.obj.ly = map(lastXinputReport.sThumbLY, INT16_MIN, INT16_MAX, UINT8_MAX, 0);
     lastSwitchReport.obj.rx = map(lastXinputReport.sThumbRX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
-    lastSwitchReport.obj.ry = map(lastXinputReport.sThumbRX, INT16_MIN, INT16_MAX, 0, UINT8_MAX);
+    lastSwitchReport.obj.ry = map(lastXinputReport.sThumbRX, INT16_MIN, INT16_MAX, UINT8_MAX, 0);
 }
 
 void hid_task(void){
