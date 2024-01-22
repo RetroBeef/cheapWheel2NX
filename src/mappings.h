@@ -87,4 +87,49 @@ typedef union{
   uint8_t bytes[sizeof(switch_report_s)];
 } switch_report_t;
 
+typedef struct{
+	uint8_t up : 1;
+	uint8_t down : 1;
+	uint8_t left : 1;
+	uint8_t right : 1;
+	uint8_t a : 1;
+	uint8_t b : 1;
+	uint8_t start : 1;
+	uint8_t c : 1;
+} md_report_s;
+
+typedef union{
+  md_report_s obj;
+  uint8_t bytes[sizeof(switch_report_s)];
+} md_report_t;
+
 #pragma pack(pop)
+
+#define B01  2
+#define B02  3
+#define B03  4
+#define B04  5
+#define B05  6
+#define B06  7
+#define B07  8
+#define B08  9
+#define B09 10
+
+#define EA_CTRL B08
+#define TP_CTRL B09
+
+#define MD_P1 B01
+#define MD_P2 B02
+#define MD_P3 B03
+#define MD_P4 B04
+#define MD_P6 B05
+#define MD_P7 B06
+#define MD_P9 B07
+
+#define MD_X_UP MD_P1
+#define MD_X_DOWN MD_P2
+#define MD_L_LEFT MD_P3
+#define MD_L_RIGHT MD_P4
+#define MD_A_B MD_P6
+#define MD_START_C MD_P9
+#define MD_SELECT MD_P7

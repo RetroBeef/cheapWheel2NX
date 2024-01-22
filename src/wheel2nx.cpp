@@ -12,6 +12,9 @@
 
 #include "mappings.h"
 
+uint8_t mdOutputEnabled = 1;
+uint8_t usbOutputEnabled = 0;
+
 #define millis() to_ms_since_boot(get_absolute_time())
 
 typedef struct{
@@ -37,6 +40,7 @@ tracer_wheel_report_t lastTracerReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 speedforce_wheel_report_t lastSpeedforceReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 switch_report_t lastSwitchReport = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 xinput_gamepad_t lastXinputReport = {0,0,0,0,0,0,0};
+md_report_t lastMdReport = {0,0,0,0,0,0,0,0};
 
 connected_device_t* connectedDevice = 0;
 uint8_t xinputConnected = 0;
@@ -78,7 +82,7 @@ uint8_t getAdjustedSpeedforceAxisValue(uint16_t axisValue, uint16_t axisCenter, 
     return (uint8_t)map(adjustedValue,0,1024,0,255);
 }     
 
-void translateTracerToNx(){
+void translateTracerToNx(void){
 	lastSwitchReport.obj.hat = lastTracerReport.dpad;
     lastSwitchReport.obj.y = lastTracerReport.button01;
     lastSwitchReport.obj.b = lastTracerReport.button03;
@@ -112,7 +116,7 @@ static uint8_t replay[6][7]{
 };
 
 static uint8_t testForceFeedBack = 0;
-void translateSpeedforceToNx(){
+void translateSpeedforceToNx(void){
 	uint8_t up = lastSpeedforceReport.dpadUp;
 	uint8_t down = lastSpeedforceReport.dpadDown;
     uint8_t left = lastSpeedforceReport.dpadLeft;
@@ -166,7 +170,7 @@ void translateSpeedforceToNx(){
     }
 }
 
-void translateXinputToNx(){
+void translateXinputToNx(void){
 	uint8_t up = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_UP;
 	uint8_t down = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
     uint8_t left = lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
@@ -283,6 +287,82 @@ void core1_main() {
   }
 }
 
+void setupMdOutput(void){
+  gpio_init(EA_CTRL);
+  gpio_set_dir(EA_CTRL, GPIO_OUT);
+  gpio_put(EA_CTRL, 0);
+
+  gpio_init(TP_CTRL);
+  gpio_set_dir(TP_CTRL, GPIO_OUT);
+  gpio_put(TP_CTRL, 0);
+
+  gpio_init(MD_P1);
+  gpio_set_dir(MD_P1, GPIO_OUT);
+  gpio_put(MD_P1, 1);
+
+  gpio_init(MD_P2);
+  gpio_set_dir(MD_P2, GPIO_OUT);
+  gpio_put(MD_P2, 1);
+
+  gpio_init(MD_P3);
+  gpio_set_dir(MD_P3, GPIO_OUT);
+  gpio_put(MD_P3, 1);
+
+  gpio_init(MD_P4);
+  gpio_set_dir(MD_P4, GPIO_OUT);
+  gpio_put(MD_P4, 1);
+
+  gpio_init(MD_P6);
+  gpio_set_dir(MD_P6, GPIO_OUT);
+  gpio_put(MD_P6, 1);
+
+  gpio_init(MD_P7);
+  gpio_set_dir(MD_P7, GPIO_IN);
+  gpio_pull_up(MD_P7);
+
+  gpio_init(MD_P9);
+  gpio_set_dir(MD_P9, GPIO_OUT);
+  gpio_put(MD_P9, 1);
+}
+
+void translateXinputToMd(void){
+	lastMdReport.obj.up = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_UP);
+	lastMdReport.obj.down = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+    lastMdReport.obj.left = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+    lastMdReport.obj.right = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+	
+    lastMdReport.obj.c = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_Y);
+    lastMdReport.obj.b = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_B);
+    lastMdReport.obj.a = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_A);
+
+    lastMdReport.obj.start = !!(lastXinputReport.wButtons & XINPUT_GAMEPAD_GUIDE);
+}
+
+uint8_t lastSelectState = 1;
+void mdLoop(void){
+    translateXinputToMd();
+    uint8_t select = gpio_get(MD_SELECT);
+    gpio_put(PICO_DEFAULT_LED_PIN, select);
+    if(lastSelectState!=select){
+        if(select==0){
+            gpio_put(MD_X_UP, 1);
+            gpio_put(MD_X_DOWN, 1);
+            gpio_put(MD_L_LEFT, 0);
+            gpio_put(MD_L_RIGHT, 0);
+            gpio_put(MD_A_B, !lastMdReport.obj.a);
+            gpio_put(MD_START_C, !lastMdReport.obj.start);
+        }else{
+            gpio_put(MD_X_UP, !lastMdReport.obj.up);
+            gpio_put(MD_X_DOWN, !lastMdReport.obj.down);
+            gpio_put(MD_L_LEFT, !lastMdReport.obj.left);
+            gpio_put(MD_L_RIGHT, !lastMdReport.obj.right);
+            gpio_put(MD_A_B, !lastMdReport.obj.b);
+            gpio_put(MD_START_C, !lastMdReport.obj.c);
+        }
+    }
+    lastSelectState=select;
+}
+
 int main(void) {
   set_sys_clock_khz(120000, true);//multiple of 12MHz
 
@@ -291,13 +371,21 @@ int main(void) {
   multicore_reset_core1();
   multicore_launch_core1(core1_main);
 
-  tud_init(0);
-
-  while (1){
-    hid_task();
-    tud_task();
+  if(usbOutputEnabled){
+    tud_init(0);
+    while (1){
+      hid_task();
+      tud_task();
+    }
   }
 
+  if(mdOutputEnabled){
+    setupMdOutput();
+    while(1){
+        mdLoop();
+        asm("nop;");
+    }
+  }
   return 0;
 }
 
@@ -330,7 +418,6 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
             //todo
           }
         }
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
         break;
     }
   }
@@ -348,7 +435,6 @@ void tuh_xinput_mount_cb(uint8_t dev_addr, uint8_t instance, const xinputh_inter
     tuh_xinput_set_led(dev_addr, instance, 1, true);
     tuh_xinput_set_rumble(dev_addr, instance, 0, 0, true);
     xinputConnected = 1;
-    gpio_put(PICO_DEFAULT_LED_PIN, 1);
     tuh_xinput_receive_report(dev_addr, instance);
 }
 
