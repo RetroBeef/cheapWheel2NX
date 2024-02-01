@@ -105,26 +105,52 @@ typedef union{
 
 #pragma pack(pop)
 
-#define B01  2
-#define B02  3
-#define B03  4
-#define B04  5
-#define B05  6
-#define B06  7
-#define B07  8
-#define B08  9
-#define B09 10
+#define SUBD01 12
+#define SUBD02 10
+#define SUBD03 13
+#define SUBD04 15
+#define SUBD10  5
+#define SUBD11  7
+//#define SUBD12 //todo
+#define SUBD13  9
+#define SUBD14 11
+#define SUBD15 14
+#define SUBD16 16
+#define SUBD18 17
+#define SUBD20  4
+#define SUBD22  3
+#define SUBD23  6
+#define SUBD24  2
+#define SUBD25  8
 
-#define EA_CTRL B08
-#define TP_CTRL B09
+#define IO27 SUBD01
+#define IO25 SUBD02
+#define IO32 SUBD03
+#define IO34 SUBD04
+#define IO18 SUBD10
+#define IO21 SUBD11
+#define IO1  SUBD12
+#define IO23 SUBD13
+#define IO26 SUBD14
+#define IO33 SUBD15
+#define IO35 SUBD16
+#define IO36 SUBD18
+#define IO16 SUBD20
+#define IO5  SUBD22
+#define IO19 SUBD23
+#define IO3  SUBD24
+#define IO25 SUBD25
 
-#define MD_P1 B01
-#define MD_P2 B02
-#define MD_P3 B03
-#define MD_P4 B04
-#define MD_P6 B05
-#define MD_P7 B06
-#define MD_P9 B07
+//#define EA_CTRL IO32//todo
+//#define TP_CTRL IO1//todo
+
+#define MD_P1 IO3
+#define MD_P2 IO5
+#define MD_P3 IO18
+#define MD_P4 IO23
+#define MD_P6 IO26
+#define MD_P7 IO35
+#define MD_P9 IO27
 
 #define MD_X_UP MD_P1
 #define MD_X_DOWN MD_P2

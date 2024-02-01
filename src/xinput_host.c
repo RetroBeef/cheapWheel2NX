@@ -123,7 +123,7 @@ static void xboxone_init( xinputh_interface_t *xid_itf, uint8_t dev_addr, uint8_
     tuh_xinput_send_report(dev_addr, instance, xboxone_s_init, sizeof(xboxone_s_init));
     wait_for_tx_complete(dev_addr, xid_itf->ep_out);
 
-    if (VID == 0x045e && (PID == 0x0b00))
+    if (VID == 0x045e && (PID == 0x0b00 || PID == 0x0b12 || PID == 0x02e6))
     {
         tuh_xinput_send_report(dev_addr, instance, extra_input_packet_init, sizeof(extra_input_packet_init));
         wait_for_tx_complete(dev_addr, xid_itf->ep_out);

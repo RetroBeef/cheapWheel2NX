@@ -288,13 +288,13 @@ void core1_main() {
 }
 
 void setupMdOutput(void){
-  gpio_init(EA_CTRL);
+  /*gpio_init(EA_CTRL);
   gpio_set_dir(EA_CTRL, GPIO_OUT);
   gpio_put(EA_CTRL, 0);
 
   gpio_init(TP_CTRL);
   gpio_set_dir(TP_CTRL, GPIO_OUT);
-  gpio_put(TP_CTRL, 0);
+  gpio_put(TP_CTRL, 0);*/
 
   gpio_init(MD_P1);
   gpio_set_dir(MD_P1, GPIO_OUT);
