@@ -106,6 +106,33 @@ void translateTracerToNx(void){
     lastSwitchReport.obj.ry = 127;//center?
 }
 
+void translateTracerToMd(void){
+    uint8_t is_up = (lastTracerReport.dpad == HATSWITCH_UP || lastTracerReport.dpad == HATSWITCH_UPRIGHT || lastTracerReport.dpad == HATSWITCH_UPLEFT);
+    uint8_t is_down = (lastTracerReport.dpad == HATSWITCH_DOWN || lastTracerReport.dpad == HATSWITCH_DOWNRIGHT || lastTracerReport.dpad == HATSWITCH_DOWNLEFT);
+    uint8_t is_left = (lastTracerReport.dpad == HATSWITCH_LEFT || lastTracerReport.dpad == HATSWITCH_DOWNLEFT || lastTracerReport.dpad == HATSWITCH_UPLEFT);	
+    uint8_t is_right = (lastTracerReport.dpad == HATSWITCH_RIGHT || lastTracerReport.dpad == HATSWITCH_DOWNRIGHT || lastTracerReport.dpad == HATSWITCH_UPRIGHT);
+    lastMdReport.obj.up = is_up;
+	lastMdReport.obj.down = is_down;
+    lastMdReport.obj.left = is_left;
+    lastMdReport.obj.right = is_right;
+	
+    lastMdReport.obj.c = lastTracerReport.button04;
+    lastMdReport.obj.a = lastTracerReport.button03;
+    lastMdReport.obj.b = lastTracerReport.button01;
+
+    lastMdReport.obj.start = lastTracerReport.button10;
+
+    if(!is_left)lastMdReport.obj.left = (lastTracerReport.xAxisTrimmed < lastTracerReport.centerX - 10);
+    if(!is_right)lastMdReport.obj.right = (lastTracerReport.xAxisTrimmed > lastTracerReport.centerX + 10);
+
+    if(!lastTracerReport.button03 && lastTracerReport.yAxis>lastTracerReport.centerY+tracerPedalThreshold){
+        lastMdReport.obj.a = 1;//break
+    }
+    if(!lastTracerReport.button01 && lastTracerReport.yAxis < lastTracerReport.centerY-tracerPedalThreshold){
+        lastMdReport.obj.b = 1;//gas
+    }
+}
+
 static uint8_t replay[6][7]{
     {0xF5, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
     {0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -340,7 +367,8 @@ void translateXinputToMd(void){
 
 uint8_t lastSelectState = 1;
 void mdLoop(void){
-    translateXinputToMd();
+    //translateXinputToMd();
+    translateTracerToMd();
     uint8_t select = gpio_get(MD_SELECT);
     gpio_put(PICO_DEFAULT_LED_PIN, select);
     if(lastSelectState!=select){
